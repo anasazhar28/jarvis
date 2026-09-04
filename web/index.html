@@ -7,39 +7,55 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     :root { --ink:#081115; --panel:#102126; --panel2:#162d31; --cyan:#64e8df; --lime:#c9f36a; --text:#e8f5ee; --muted:#91aaa8; --line:#294449; --danger:#ff8d79; }
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; color:var(--text); background:radial-gradient(circle at 12% 0%, #214b46 0, transparent 34%), linear-gradient(135deg,#071013,#0b1b20 55%,#112d2b); font-family:"Space Grotesk",sans-serif; }
     .shell { width:min(1180px,100%); min-height:100vh; margin:auto; padding:24px; display:grid; grid-template-columns:260px 1fr; gap:18px; }
     aside, main { border:1px solid var(--line); background:rgba(10,25,29,.88); box-shadow:0 20px 80px rgba(0,0,0,.24); }
-    aside { padding:22px; display:flex; flex-direction:column; }
-    .brand { color:var(--cyan); font-size:24px; font-weight:700; letter-spacing:.08em; }
+    aside { padding:22px; display:flex; flex-direction:column; overflow-y:auto; max-height:100vh; }
+    @keyframes neon-glow { 0%,100% { text-shadow:0 0 8px rgba(100,232,223,.6), 0 0 16px rgba(100,232,223,.3), 0 0 24px rgba(255,61,206,.2); } 50% { text-shadow:0 0 14px rgba(100,232,223,.9), 0 0 28px rgba(100,232,223,.5), 0 0 42px rgba(255,61,206,.4), 0 0 60px rgba(100,232,223,.3); } }
+    @keyframes scan-line { 0% { transform:translateY(-100%); } 100% { transform:translateY(100%); } }
+    @keyframes flicker { 0%,100% { opacity:1; } 50% { opacity:.95; } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.6; } }
+    .brand { position:relative; color:var(--cyan); font-size:32px; font-weight:900; letter-spacing:.12em; background:linear-gradient(90deg, #64e8df, #00ffff, #64e8df); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:neon-glow 3s ease-in-out infinite, flicker 0.15s ease-in-out infinite; text-transform:uppercase; font-style:italic; }
+    .brand::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(180deg, rgba(100,232,223,.1) 0%, transparent 50%, rgba(255,61,206,.05) 100%); animation:scan-line 6s linear infinite; pointer-events:none; border-radius:2px; }
+    .brand::after { content:'◆'; position:absolute; right:-8px; top:4px; font-size:14px; color:#ff3dce; animation:neon-glow 2.5s ease-in-out infinite; opacity:.7; }
     .eyebrow,.mono { font-family:"IBM Plex Mono",monospace; letter-spacing:.08em; }
     .eyebrow { color:var(--muted); font-size:11px; margin-top:5px; }
-    .signal { margin:42px 0 auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:18px 0; }
+    .signal { margin:22px 0 auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:18px 0; }
     .signal strong { display:block; color:var(--lime); font-size:12px; margin-bottom:9px; }
-    .signal p { color:var(--muted); line-height:1.6; font-size:14px; margin:0; }
+    .signal p { color:var(--muted); line-height:1.6; font-size:13px; margin:0; }
     .status { color:var(--cyan); font:11px "IBM Plex Mono",monospace; }
+    .features { margin-top:18px; display:flex; flex-direction:column; gap:8px; }
+    .feature-btn { padding:8px 12px; background:var(--panel2); border:1px solid var(--line); color:var(--text); font:500 11px "IBM Plex Mono",monospace; cursor:pointer; text-align:left; }
+    .feature-btn:hover { background:var(--panel); border-color:var(--cyan); }
+    .feature-btn.active { color:var(--lime); border-color:var(--lime); }
     main { min-width:0; display:flex; flex-direction:column; }
-    header { padding:22px 26px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    header { padding:22px 26px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     h1 { margin:0; font-size:clamp(22px,4vw,36px); letter-spacing:-.02em; }
     .mode-row { display:flex; gap:8px; flex-wrap:wrap; }
     button { border:1px solid var(--line); background:var(--panel2); color:var(--text); padding:10px 13px; font:500 12px "IBM Plex Mono",monospace; cursor:pointer; }
     button:hover, button.active { color:var(--ink); background:var(--cyan); border-color:var(--cyan); }
-    .messages { min-height:420px; flex:1; padding:24px 26px; overflow:auto; }
-    .message { max-width:820px; margin:0 0 22px; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .messages { min-height:320px; flex:1; padding:24px 26px; overflow:auto; display:flex; flex-direction:column; gap:18px; }
+    .message { max-width:820px; margin:0; }
     .message .label { color:var(--lime); font:11px "IBM Plex Mono",monospace; margin-bottom:7px; }
     .message.assistant .label { color:var(--cyan); }
-    .message .body { color:var(--text); white-space:pre-wrap; line-height:1.65; font-size:15px; }
-    .composer { padding:18px 26px 24px; border-top:1px solid var(--line); }
+    .message .body { color:var(--text); white-space:pre-wrap; line-height:1.65; font-size:15px; word-break:break-word; }
+    .message img { max-width:100%; height:auto; margin-top:10px; border:1px solid var(--line); border-radius:4px; }
+    .message .error { color:var(--danger); }
+    .canvas-container { width:100%; height:320px; border:1px solid var(--line); background:#050a0f; margin:10px 0; border-radius:4px; }
+    .composer { padding:18px 26px 24px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
     form { display:flex; gap:10px; }
     textarea { resize:vertical; min-height:56px; max-height:180px; flex:1; border:1px solid var(--line); background:#09171b; color:var(--text); padding:15px; outline:none; font:15px "Space Grotesk",sans-serif; }
     textarea:focus { border-color:var(--cyan); }
     .send { min-width:110px; background:var(--lime); border-color:var(--lime); color:var(--ink); font-weight:700; }
-    .hint { color:var(--muted); font:11px "IBM Plex Mono",monospace; margin-top:10px; }
-    .error { color:var(--danger)!important; }
-    @media (max-width:720px) { .shell { display:block; padding:0; } aside { border-width:0 0 1px; padding:18px 20px; } .signal { margin:20px 0 0; padding:12px 0 0; border-bottom:0; } .signal p { display:none; } main { border-width:0; min-height:calc(100vh - 160px); } header { padding:18px 20px; align-items:flex-start; flex-direction:column; } .messages { padding:22px 20px; min-height:380px; } .composer { padding:14px 20px 20px; } form { flex-direction:column; } .send { min-height:48px; } }
+    .hint { color:var(--muted); font:11px "IBM Plex Mono",monospace; }
+    .control-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .control-row button { flex:1; min-width:80px; }
+    @media (max-width:720px) { .shell { display:block; padding:0; } aside { border-width:0 0 1px; padding:18px 20px; max-height:none; } .signal { margin:18px 0 0; padding:12px 0 0; border-bottom:0; } .signal p { display:none; } main { border-width:0; min-height:auto; } header { padding:14px 16px; flex-direction:column; align-items:flex-start; } h1 { font-size:26px; } .messages { padding:18px 16px; min-height:280px; } .composer { padding:12px 16px 16px; } form { flex-direction:column; } .send { min-height:48px; } .canvas-container { height:280px; } }
   </style>
 </head>
 <body>
@@ -47,25 +63,156 @@
     <aside>
       <div class="brand">J.A.R.V.I.S.</div>
       <div class="eyebrow">WEB CORE / MARK IV</div>
-      <div class="signal"><strong>● SECURE UPLINK</strong><p>Cloud-ready conversation layer. Local computer controls stay disabled in browser mode.</p></div>
+      <div class="signal"><strong>● SECURE UPLINK</strong><p>Cloud-ready. All features online.</p></div>
       <div class="status" id="status">SYSTEM // READY</div>
+      <div class="features">
+        <button class="feature-btn active" data-mode="chat">💬 CHAT</button>
+        <button class="feature-btn" data-mode="image">🎨 IMAGE</button>
+        <button class="feature-btn" data-mode="globe">🌍 GLOBE</button>
+        <button class="feature-btn" data-mode="chess">♟ CHESS</button>
+      </div>
     </aside>
     <main>
       <header><div><div class="eyebrow">CHANNEL // PRIMARY</div><h1>Good day, Sir.</h1></div><div class="mode-row" role="group" aria-label="Assistant mode"><button class="active" data-mode="jarvis">JARVIS</button><button data-mode="vision">VISION</button><button data-mode="ultron">ULTRON</button></div></header>
-      <section class="messages" id="messages" aria-live="polite"><article class="message assistant"><div class="label">JARVIS // ONLINE</div><div class="body">Web core connected. How may I assist you, Sir?</div></article></section>
-      <section class="composer"><form id="chat-form"><textarea id="message" maxlength="12000" placeholder="Transmit a command..." aria-label="Message"></textarea><button class="send" type="submit">TRANSMIT</button></form><div class="hint">ENTER sends // SHIFT+ENTER adds a line</div></section>
+      <section class="messages" id="messages" aria-live="polite"><article class="message assistant"><div class="label">JARVIS // ONLINE</div><div class="body">Web core connected. All systems operational. How may I assist you, Sir?</div></article></section>
+      <div id="canvas-container" style="display:none;"></div>
+      <section class="composer"><form id="chat-form"><textarea id="message" maxlength="12000" placeholder="Transmit a command..." aria-label="Message"></textarea><button class="send" type="submit">TRANSMIT</button></form><div class="control-row" id="controls"><button id="voice-btn" type="button" title="Voice input">🎤 VOICE</button><button id="generate-image-btn" type="button" style="display:none;" title="Generate image">🎨 GENERATE</button></div><div class="hint" id="hint">ENTER sends // SHIFT+ENTER adds a line</div></section>
     </main>
   </div>
   <script>
     const messages = document.querySelector('#messages');
     const input = document.querySelector('#message');
     const status = document.querySelector('#status');
+    const canvasContainer = document.querySelector('#canvas-container');
     let mode = 'jarvis';
+    let currentFeature = 'chat';
     const history = [];
-    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('[data-mode]').forEach(item => item.classList.remove('active')); button.classList.add('active'); mode = button.dataset.mode; }));
-    function addMessage(label, text, assistant = false, error = false) { const article = document.createElement('article'); article.className = `message ${assistant ? 'assistant' : ''}`; article.innerHTML = `<div class="label">${label}</div><div class="body${error ? ' error' : ''}"></div>`; article.querySelector('.body').textContent = text; messages.append(article); messages.scrollTop = messages.scrollHeight; return article.querySelector('.body'); }
-    document.querySelector('#chat-form').addEventListener('submit', async event => { event.preventDefault(); const message = input.value.trim(); if (!message) return; input.value = ''; addMessage('YOU', message); status.textContent = 'SYSTEM // THINKING'; const pending = addMessage(mode.toUpperCase() + ' // PROCESSING', 'Thinking...', true); const prior = history.slice(-20); history.push({ role:'user', content:message }); try { const response = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message, mode, history: prior }) }); const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'Request failed'); pending.textContent = data.answer; history.push({ role:'assistant', content:data.answer }); status.textContent = 'SYSTEM // READY'; } catch (error) { pending.textContent = error.message; pending.classList.add('error'); status.textContent = 'SYSTEM // ERROR'; } });
-    input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.querySelector('#chat-form').requestSubmit(); } });
+    let scene, camera, renderer, globe;
+    
+    const featureBtns = document.querySelectorAll('.feature-btn');
+    const modeBtns = document.querySelectorAll('[data-mode]');
+    const voiceBtn = document.querySelector('#voice-btn');
+    const generateImageBtn = document.querySelector('#generate-image-btn');
+    
+    modeBtns.forEach(btn => btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+    }));
+    
+    featureBtns.forEach(btn => btn.addEventListener('click', () => {
+      featureBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFeature = btn.dataset.mode;
+      canvasContainer.style.display = 'none';
+      generateImageBtn.style.display = currentFeature === 'image' ? 'block' : 'none';
+      if (currentFeature === 'globe') initGlobe();
+    }));
+    
+    function addMessage(label, text, assistant = false, error = false) {
+      const article = document.createElement('article');
+      article.className = `message ${assistant ? 'assistant' : ''}`;
+      article.innerHTML = `<div class="label">${label}</div><div class="body${error ? ' error' : ''}"></div>`;
+      article.querySelector('.body').textContent = text;
+      messages.append(article);
+      messages.scrollTop = messages.scrollHeight;
+      return article.querySelector('.body');
+    }
+    
+    function initGlobe() {
+      if (globe) return;
+      canvasContainer.style.display = 'block';
+      canvasContainer.innerHTML = '';
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+      renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+      renderer.setClearColor(0x050a0f);
+      canvasContainer.appendChild(renderer.domElement);
+      
+      const geometry = new THREE.SphereGeometry(2, 64, 64);
+      const canvas = document.createElement('canvas');
+      canvas.width = 2048; canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#1a2a2e'; ctx.fillRect(0,0,2048,1024);
+      for(let i=0;i<100;i++) { ctx.fillStyle = `hsl(180, 100%, ${40+Math.random()*40}%)`; ctx.fillRect(Math.random()*2048, Math.random()*1024, 80, 60); }
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.MeshPhongMaterial({ map:texture });
+      globe = new THREE.Mesh(geometry, material);
+      scene.add(globe);
+      const light = new THREE.DirectionalLight(0x64e8df, 1.5);
+      light.position.set(5,3,5);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x333333));
+      camera.position.z = 5;
+      
+      function animate() {
+        requestAnimationFrame(animate);
+        if(globe) globe.rotation.y += 0.001;
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+    
+    voiceBtn.addEventListener('click', async () => {
+      if (!('webkitSpeechRecognition' in window)) { alert('Voice not supported'); return; }
+      const recognition = new webkitSpeechRecognition();
+      recognition.continuous = false; recognition.interimResults = true;
+      voiceBtn.textContent = '🎤 LISTENING...'; voiceBtn.disabled = true;
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for(let i=event.resultIndex;i<event.results.length;i++) { transcript += event.results[i][0].transcript; }
+        if(event.isFinal) { input.value = transcript; voiceBtn.textContent = '🎤 VOICE'; voiceBtn.disabled = false; }
+      };
+      recognition.onerror = () => { voiceBtn.textContent = '🎤 VOICE'; voiceBtn.disabled = false; };
+      recognition.start();
+    });
+    
+    generateImageBtn.addEventListener('click', async () => {
+      const prompt = input.value.trim();
+      if(!prompt) return;
+      input.value = ''; generateImageBtn.disabled = true; generateImageBtn.textContent = '🎨 GENERATING...';
+      addMessage('YOU', prompt);
+      try {
+        const response = await fetch('/api/generate-image', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt }) });
+        const data = await response.json();
+        if(!response.ok) throw new Error(data.detail || 'Generation failed');
+        const pending = addMessage('JARVIS // GENERATED', '');
+        pending.innerHTML = `<img src="${data.image_url}" alt="Generated: ${prompt}">`;
+        messages.scrollTop = messages.scrollHeight;
+      } catch(error) {
+        addMessage('SYSTEM // ERROR', error.message, true, true);
+      } finally {
+        generateImageBtn.disabled = false; generateImageBtn.textContent = '🎨 GENERATE';
+      }
+    });
+    
+    document.querySelector('#chat-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+      input.value = ''; addMessage('YOU', message);
+      status.textContent = 'SYSTEM // THINKING';
+      const pending = addMessage(mode.toUpperCase() + ' // PROCESSING', 'Thinking...', true);
+      const prior = history.slice(-20);
+      history.push({ role:'user', content:message });
+      try {
+        const response = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message, mode, history: prior }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Request failed');
+        pending.textContent = data.answer;
+        history.push({ role:'assistant', content:data.answer });
+        status.textContent = 'SYSTEM // READY';
+      } catch (error) {
+        pending.textContent = error.message;
+        pending.classList.add('error');
+        status.textContent = 'SYSTEM // ERROR';
+      }
+    });
+    
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.querySelector('#chat-form').requestSubmit(); }
+    });
   </script>
 </body>
 </html>

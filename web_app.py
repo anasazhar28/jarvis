@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+import base64
+from io import BytesIO
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -84,3 +86,23 @@ def chat(request: ChatRequest) -> dict[str, str]:
         return {"answer": answer.strip(), "mode": request.mode}
     except Exception as error:
         raise HTTPException(status_code=502, detail=f"AI service error: {error}") from error
+
+
+@app.post("/api/generate-image")
+def generate_image(request: dict[str, str]) -> dict[str, str]:
+    client = get_client()
+    prompt = request.get("prompt", "").strip()[:1000]
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+    try:
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+        image_url = response.data[0].url
+        return {"image_url": image_url, "prompt": prompt}
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Image generation failed: {error}") from error
