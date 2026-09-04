@@ -178,7 +178,11 @@
         const data = await response.json();
         if(!response.ok) throw new Error(data.detail || 'Generation failed');
         const pending = addMessage('JARVIS // GENERATED', '');
-        pending.innerHTML = `<img src="${data.image_url}" alt="Generated: ${prompt}">`;
+        if(data.image_data) {
+          pending.innerHTML = `<img src="data:image/png;base64,${data.image_data}" alt="Generated: ${prompt}">`;
+        } else if(data.image_url) {
+          pending.innerHTML = `<img src="${data.image_url}" alt="Generated: ${prompt}">`;
+        }
         messages.scrollTop = messages.scrollHeight;
       } catch(error) {
         addMessage('SYSTEM // ERROR', error.message, true, true);
