@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J.A.R.V.I.S. // Web Core</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink:#081115; --panel:#102126; --panel2:#162d31; --cyan:#64e8df; --lime:#c9f36a; --text:#e8f5ee; --muted:#91aaa8; --line:#294449; --danger:#ff8d79; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); background:radial-gradient(circle at 12% 0%, #214b46 0, transparent 34%), linear-gradient(135deg,#071013,#0b1b20 55%,#112d2b); font-family:"Space Grotesk",sans-serif; }
+    .shell { width:min(1180px,100%); min-height:100vh; margin:auto; padding:24px; display:grid; grid-template-columns:260px 1fr; gap:18px; }
+    aside, main { border:1px solid var(--line); background:rgba(10,25,29,.88); box-shadow:0 20px 80px rgba(0,0,0,.24); }
+    aside { padding:22px; display:flex; flex-direction:column; }
+    .brand { color:var(--cyan); font-size:24px; font-weight:700; letter-spacing:.08em; }
+    .eyebrow,.mono { font-family:"IBM Plex Mono",monospace; letter-spacing:.08em; }
+    .eyebrow { color:var(--muted); font-size:11px; margin-top:5px; }
+    .signal { margin:42px 0 auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:18px 0; }
+    .signal strong { display:block; color:var(--lime); font-size:12px; margin-bottom:9px; }
+    .signal p { color:var(--muted); line-height:1.6; font-size:14px; margin:0; }
+    .status { color:var(--cyan); font:11px "IBM Plex Mono",monospace; }
+    main { min-width:0; display:flex; flex-direction:column; }
+    header { padding:22px 26px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    h1 { margin:0; font-size:clamp(22px,4vw,36px); letter-spacing:-.02em; }
+    .mode-row { display:flex; gap:8px; flex-wrap:wrap; }
+    button { border:1px solid var(--line); background:var(--panel2); color:var(--text); padding:10px 13px; font:500 12px "IBM Plex Mono",monospace; cursor:pointer; }
+    button:hover, button.active { color:var(--ink); background:var(--cyan); border-color:var(--cyan); }
+    .messages { min-height:420px; flex:1; padding:24px 26px; overflow:auto; }
+    .message { max-width:820px; margin:0 0 22px; }
+    .message .label { color:var(--lime); font:11px "IBM Plex Mono",monospace; margin-bottom:7px; }
+    .message.assistant .label { color:var(--cyan); }
+    .message .body { color:var(--text); white-space:pre-wrap; line-height:1.65; font-size:15px; }
+    .composer { padding:18px 26px 24px; border-top:1px solid var(--line); }
+    form { display:flex; gap:10px; }
+    textarea { resize:vertical; min-height:56px; max-height:180px; flex:1; border:1px solid var(--line); background:#09171b; color:var(--text); padding:15px; outline:none; font:15px "Space Grotesk",sans-serif; }
+    textarea:focus { border-color:var(--cyan); }
+    .send { min-width:110px; background:var(--lime); border-color:var(--lime); color:var(--ink); font-weight:700; }
+    .hint { color:var(--muted); font:11px "IBM Plex Mono",monospace; margin-top:10px; }
+    .error { color:var(--danger)!important; }
+    @media (max-width:720px) { .shell { display:block; padding:0; } aside { border-width:0 0 1px; padding:18px 20px; } .signal { margin:20px 0 0; padding:12px 0 0; border-bottom:0; } .signal p { display:none; } main { border-width:0; min-height:calc(100vh - 160px); } header { padding:18px 20px; align-items:flex-start; flex-direction:column; } .messages { padding:22px 20px; min-height:380px; } .composer { padding:14px 20px 20px; } form { flex-direction:column; } .send { min-height:48px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">J.A.R.V.I.S.</div>
+      <div class="eyebrow">WEB CORE / MARK IV</div>
+      <div class="signal"><strong>● SECURE UPLINK</strong><p>Cloud-ready conversation layer. Local computer controls stay disabled in browser mode.</p></div>
+      <div class="status" id="status">SYSTEM // READY</div>
+    </aside>
+    <main>
+      <header><div><div class="eyebrow">CHANNEL // PRIMARY</div><h1>Good day, Sir.</h1></div><div class="mode-row" role="group" aria-label="Assistant mode"><button class="active" data-mode="jarvis">JARVIS</button><button data-mode="vision">VISION</button><button data-mode="ultron">ULTRON</button></div></header>
+      <section class="messages" id="messages" aria-live="polite"><article class="message assistant"><div class="label">JARVIS // ONLINE</div><div class="body">Web core connected. How may I assist you, Sir?</div></article></section>
+      <section class="composer"><form id="chat-form"><textarea id="message" maxlength="12000" placeholder="Transmit a command..." aria-label="Message"></textarea><button class="send" type="submit">TRANSMIT</button></form><div class="hint">ENTER sends // SHIFT+ENTER adds a line</div></section>
+    </main>
+  </div>
+  <script>
+    const messages = document.querySelector('#messages');
+    const input = document.querySelector('#message');
+    const status = document.querySelector('#status');
+    let mode = 'jarvis';
+    const history = [];
+    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('[data-mode]').forEach(item => item.classList.remove('active')); button.classList.add('active'); mode = button.dataset.mode; }));
+    function addMessage(label, text, assistant = false, error = false) { const article = document.createElement('article'); article.className = `message ${assistant ? 'assistant' : ''}`; article.innerHTML = `<div class="label">${label}</div><div class="body${error ? ' error' : ''}"></div>`; article.querySelector('.body').textContent = text; messages.append(article); messages.scrollTop = messages.scrollHeight; return article.querySelector('.body'); }
+    document.querySelector('#chat-form').addEventListener('submit', async event => { event.preventDefault(); const message = input.value.trim(); if (!message) return; input.value = ''; addMessage('YOU', message); status.textContent = 'SYSTEM // THINKING'; const pending = addMessage(mode.toUpperCase() + ' // PROCESSING', 'Thinking...', true); const prior = history.slice(-20); history.push({ role:'user', content:message }); try { const response = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message, mode, history: prior }) }); const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'Request failed'); pending.textContent = data.answer; history.push({ role:'assistant', content:data.answer }); status.textContent = 'SYSTEM // READY'; } catch (error) { pending.textContent = error.message; pending.classList.add('error'); status.textContent = 'SYSTEM // ERROR'; } });
+    input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.querySelector('#chat-form').requestSubmit(); } });
+  </script>
+</body>
+</html>

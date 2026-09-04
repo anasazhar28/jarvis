@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+jarvis_memory.json
+jarvis_location.json
+jarvis_tasks.json
+jarvis_reminders.json
+jarvis_calendar.json
+jarvis_generated/
+jarvis_3d_models/
+.env
